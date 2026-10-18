@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#edf1ef">
+    <meta name="description" content="A digital album of Panchami, filled with monthly photos and family memories.">
+    <title>Digital Album of Panchami</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <a class="wordmark" href="#home" aria-label="Digital Album of Panchami home">P<span>.</span></a>
+        <nav aria-label="Main navigation">
+            <a href="#memories">Monthly memories</a>
+            <a href="#special">Special memories</a>
+        </nav>
+        <a class="header-note" href="#memories">Panchami's little world <span aria-hidden="true">↘</span></a>
+    </header>
+
+    <main>
+        <section class="home" id="home" aria-labelledby="home-title">
+            <div class="home-copy">
+                <p class="small-heading"><span class="heading-line"></span> A LITTLE WORLD, FULL OF LOVE</p>
+                <h1 id="home-title">Digital Album<br><span>of Panchami</span></h1>
+                <div class="birthday"><span class="birthday-mark" aria-hidden="true">✳</span> Born on January 9, 2026</div>
+                <div class="welcome-note">
+                    <h2>Welcome to her little world</h2>
+                    <p>Every smile, every tiny milestone, every ordinary day made extraordinary. This is Panchami's story, gathered one precious memory at a time.</p>
+                </div>
+                <a class="continue-btn" href="#memories">Continue to her memories <span aria-hidden="true">↓</span></a>
+                <p class="bottom-note">Made with love, just for Panchami.</p>
+            </div>
+            <figure class="cover-art">
+                <img src="image.jpeg" alt="A collage of Panchami's little memories" fetchpriority="high">
+                <figcaption><span>PANCHAMI'S LITTLE WORLD</span><span>EVERY MOMENT, TREASURED</span></figcaption>
+                <span class="cover-stamp" aria-hidden="true">♡</span>
+            </figure>
+            <span class="hero-index" aria-hidden="true">A LITTLE ALBUM · 2026</span>
+        </section>
+
+        <section class="memories" id="memories" aria-labelledby="memories-title">
+            <div class="section-heading">
+                <div>
+                    <p class="section-label">ONE LITTLE CHAPTER AT A TIME</p>
+                    <h2 id="memories-title">Monthly memories<span>.</span></h2>
+                </div>
+                <p class="section-description">From her first month to her ninth, every chapter keeps a little piece of her growing-up story.</p>
+            </div>
+            <div class="album-summary" aria-live="polite">
+                <span><strong id="photoCount">0</strong> photographs</span>
+                <span class="summary-divider" aria-hidden="true"></span>
+                <span><strong id="chapterCount">0</strong> chapters filled</span>
+            </div>
+            <div class="month-grid" id="monthGrid" aria-label="Panchami's monthly photo chapters"></div>
+        </section>
+
+        <section class="special-section" id="special" aria-labelledby="all-photos-title">
+            <div class="special-copy">
+                <p class="section-label">LITTLE MOMENTS, KEPT FOREVER</p>
+                <h2 id="all-photos-title">Our special memories<span>.</span></h2>
+                <p class="section-description">Birthdays, firsts, family days, and all the lovely moments still to come.</p>
+            </div>
+            <button class="special-btn" id="specialBtn" type="button">
+                <span class="button-label">Open special memories</span><span class="button-arrow" aria-hidden="true">↗</span>
+            </button>
+        </section>
+    </main>
+
+    <footer>
+        <a class="wordmark footer-mark" href="#home" aria-label="Back to top">P<span>.</span></a>
+        <p>Forever our little Panchami <span aria-hidden="true">♡</span></p>
+        <span class="footer-year">A family keepsake · 2026</span>
+    </footer>
+
+    <dialog class="photo-dialog" id="photoDialog" aria-label="Photo viewer">
+        <div class="dialog-toolbar">
+            <p class="dialog-count" id="dialogCount"></p>
+            <button class="dialog-close" id="dialogClose" type="button" aria-label="Close photo viewer">×</button>
+        </div>
+        <div class="dialog-stage">
+            <button class="dialog-arrow previous-photo" id="previousPhoto" type="button" aria-label="Previous photo">←</button>
+            <div class="viewer-frame" id="viewerFrame">
+                <img id="dialogImage" src="" alt="">
+                <video id="dialogVideo" controls playsinline hidden></video>
+            </div>
+            <div class="video-fallback" id="videoFallback" hidden>
+                <p>This video format is not supported by this browser. Download the clip or convert it to H.264 MP4 to play it here.</p>
+                <a id="videoDownload" href="" download>Download video</a>
+            </div>
+            <button class="dialog-arrow next-photo" id="nextPhoto" type="button" aria-label="Next photo">→</button>
+        </div>
+        <div class="viewer-progress" id="viewerProgress" role="progressbar" aria-label="Photo position" aria-valuemin="1" aria-valuemax="1" aria-valuenow="1">
+            <span class="viewer-progress-fill" id="viewerProgressFill"></span>
+        </div>
+        <p class="dialog-caption" id="dialogCaption"></p>
+    </dialog>
+
+    <dialog class="memories-dialog" id="memoriesDialog" aria-labelledby="memoriesDialogTitle">
+        <div class="memories-dialog-header">
+            <a class="wordmark" href="#home" aria-label="Panchami's album home">P<span>.</span></a>
+            <p>HER LITTLE WORLD · SPECIAL MEMORIES</p>
+            <button class="dialog-close memory-library-close" id="memoriesDialogClose" type="button" aria-label="Close special memories">×</button>
+        </div>
+        <div class="album-browser" id="albumBrowser">
+            <p class="section-label">A LITTLE COLLECTION, JUST FOR HER</p>
+            <h2 id="memoriesDialogTitle">Special memories<span>.</span></h2>
+            <p class="album-browser-intro">Choose a memory to open its photographs and videos.</p>
+            <div class="memory-album-grid" id="memoryAlbumGrid"></div>
+        </div>
+        <div class="album-detail" id="albumDetail" hidden>
+            <button class="back-to-albums" id="backToAlbums" type="button"><span aria-hidden="true">←</span> All memories</button>
+            <p class="section-label" id="albumEyebrow"></p>
+            <h2 id="albumTitle"></h2>
+            <p class="album-detail-intro" id="albumDescription"></p>
+            <div class="memory-media-grid" id="memoryMediaGrid"></div>
+            <form class="memory-form" id="memoryForm">
+                <div class="memory-form-copy">
+                    <p class="section-label">SAVE ANOTHER LITTLE MOMENT</p>
+                    <h3>Add to this memory</h3>
+                    <p>Choose photos or videos. They stay saved in this browser.</p>
+                </div>
+                <label class="upload-field" for="memoryPhoto">
+                    <span class="upload-icon" aria-hidden="true">＋</span>
+                    <span id="uploadLabel">Choose photos or videos</span>
+                    <input id="memoryPhoto" name="photos" type="file" accept="image/*,video/*" multiple required>
+                </label>
+                <label class="caption-field" for="memoryCaption">
+                    <span>Memory caption</span>
+                    <input id="memoryCaption" name="caption" type="text" maxlength="70" placeholder="A day to remember" required>
+                </label>
+                <button class="save-memory-btn" type="submit">Save memory <span aria-hidden="true">↗</span></button>
+                <p class="memory-status" id="memoryStatus" role="status" aria-live="polite"></p>
+            </form>
+        </div>
+    </dialog>
+
+    <div class="water-effect-layer" id="waterEffectLayer" aria-hidden="true"></div>
+    <audio id="waterSong" src="song 2.mp3" preload="auto"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
