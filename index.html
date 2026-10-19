@@ -13,7 +13,13 @@
 </head>
 <body>
     <div class="intro-screen" id="introScreen" aria-labelledby="introTitle">
-        <h1 class="intro-welcome" id="introTitle">Welcome</h1>
+        <button class="intro-start" id="introStart" type="button">Tap to continue</button>
+        <div class="intro-loading" id="introLoading" role="status" aria-live="polite" hidden>
+            <span class="intro-loading-label">Getting everything ready</span>
+            <span class="intro-loading-track" aria-hidden="true"><span class="intro-loading-fill" id="introLoadingFill"></span></span>
+            <span class="intro-loading-percent" id="introLoadingPercent">0%</span>
+        </div>
+        <h1 class="intro-welcome" id="introTitle" hidden>Welcome</h1>
         <video class="intro-video" id="introVideo" src="video.mp4" playsinline webkit-playsinline muted preload="auto" aria-label="Intro video"></video>
         <audio id="introSong" src="song 1.mp3" preload="auto"></audio>
     </div>
@@ -66,13 +72,18 @@
 
         <section class="special-section" id="special" aria-labelledby="all-photos-title">
             <div class="special-copy">
-                <p class="section-label">LITTLE MOMENTS, KEPT FOREVER</p>
-                <h2 id="all-photos-title">Our special memories<span>.</span></h2>
-                <p class="section-description">Birthdays, firsts, family days, and all the lovely moments still to come.</p>
+                <div class="special-copy-text">
+                    <p class="section-label">LITTLE MOMENTS, KEPT FOREVER</p>
+                    <h2 id="all-photos-title">Our special memories<span>.</span></h2>
+                    <p class="section-description">Birthdays, firsts, family days, and all the lovely moments still to come.</p>
+                </div>
             </div>
-            <button class="special-btn" id="specialBtn" type="button">
-                <span class="button-label">Open special memories</span><span class="button-arrow" aria-hidden="true">↗</span>
-            </button>
+            <div class="special-actions">
+                <button class="special-btn" id="specialBtn" type="button">
+                    <span class="button-label">Open special memories</span><span class="button-arrow" aria-hidden="true">↗</span>
+                </button>
+                <p class="designer-signature">Designed by sasi</p>
+            </div>
         </section>
     </main>
 

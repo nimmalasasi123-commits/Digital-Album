@@ -39,6 +39,11 @@ const memoryAlbums = [
 
 const monthGrid = document.getElementById("monthGrid");
 const introScreen = document.getElementById("introScreen");
+const introStart = document.getElementById("introStart");
+const introLoading = document.getElementById("introLoading");
+const introLoadingFill = document.getElementById("introLoadingFill");
+const introLoadingPercent = document.getElementById("introLoadingPercent");
+const introTitle = document.getElementById("introTitle");
 const introVideo = document.getElementById("introVideo");
 const introSong = document.getElementById("introSong");
 const specialButton = document.getElementById("specialBtn");
@@ -78,6 +83,8 @@ let introWelcomeFinished = false;
 let introCanPlay = false;
 let introPlayAttempted = false;
 let introPlaybackStarted = false;
+let introFinaleStarted = false;
+let introStarted = false;
 
 function stopIntroSong() {
     if (!introSong) return;
@@ -88,11 +95,35 @@ function stopIntroSong() {
 function closeIntro() {
     if (!introScreen || introScreen.classList.contains("is-closing")) return;
     stopIntroSong();
+    document.body.classList.add("intro-revealing");
     introScreen.classList.add("is-closing");
     window.setTimeout(() => {
         introScreen.remove();
         document.body.classList.remove("intro-active");
-    }, 700);
+        document.body.classList.remove("intro-revealing");
+    }, 900);
+}
+
+function startIntroFinale() {
+    if (introFinaleStarted || !introVideo || !introScreen) return;
+    introFinaleStarted = true;
+    introPlaybackStarted = false;
+    introPlayAttempted = false;
+    stopIntroSong();
+    introScreen.classList.add("is-video-changing");
+    introSong.src = "song 8.mp3";
+    introVideo.src = "video 8.mp4";
+    introSong.load();
+    introVideo.load();
+    introVideo.addEventListener("canplay", () => {
+        introScreen.classList.remove("is-video-changing");
+        introVideo.play().catch(() => {
+            introPlayAttempted = false;
+        });
+    }, { once: true });
+    introLoadFallbackTimer = window.setTimeout(() => {
+        if (!introPlaybackStarted) closeIntro();
+    }, 15000);
 }
 
 function startIntroVideo() {
@@ -124,27 +155,55 @@ if (introScreen && introVideo) {
     introScreen.addEventListener("pointerdown", () => {
         if (!introWelcomeFinished) return;
         if (!introPlaybackStarted) {
-            introPlayAttempted = false;
-            startIntroVideo();
+            if (introFinaleStarted) introVideo.play().catch(() => {});
+            else {
+                introPlayAttempted = false;
+                startIntroVideo();
+            }
         }
         if (introSong?.paused) introSong.play().catch(() => {});
     });
-    introVideo.addEventListener("ended", closeIntro, { once: true });
+    introStart?.addEventListener("click", () => {
+        if (introStarted) return;
+        introStarted = true;
+        introStart.hidden = true;
+        introLoading.hidden = false;
+        const loadingStartedAt = performance.now();
+        const updateLoading = (now) => {
+            const progress = Math.min((now - loadingStartedAt) / 2000, 1);
+            const percentage = Math.round(progress * 100);
+            introLoadingFill.style.width = `${percentage}%`;
+            introLoadingPercent.textContent = `${percentage}%`;
+            if (progress < 1) {
+                window.requestAnimationFrame(updateLoading);
+                return;
+            }
+            introLoading.hidden = true;
+            introTitle.hidden = false;
+            introScreen.classList.add("is-welcome-visible");
+            window.setTimeout(() => {
+                introScreen.classList.add("is-welcome-fading");
+                window.setTimeout(() => {
+                    introWelcomeFinished = true;
+                    introScreen.classList.add("is-video-visible");
+                    introLoadFallbackTimer = window.setTimeout(() => {
+                        if (!introPlaybackStarted && !introVideo.error) closeIntro();
+                    }, 15000);
+                    startIntroVideo();
+                }, 650);
+            }, 2100);
+        };
+        window.requestAnimationFrame(updateLoading);
+    });
+    introVideo.addEventListener("ended", () => {
+        if (introFinaleStarted) closeIntro();
+        else startIntroFinale();
+    });
     introVideo.addEventListener("error", () => {
+        if (!introStarted || introFinaleStarted) return;
         window.clearTimeout(introLoadFallbackTimer);
         closeIntro();
-    }, { once: true });
-    window.setTimeout(() => {
-        introScreen.classList.add("is-welcome-fading");
-        window.setTimeout(() => {
-            introWelcomeFinished = true;
-            introScreen.classList.add("is-video-visible");
-            introLoadFallbackTimer = window.setTimeout(() => {
-                if (!introPlaybackStarted && !introVideo.error) closeIntro();
-            }, 15000);
-            startIntroVideo();
-        }, 650);
-    }, 2100);
+    });
 }
 
 function monthLabel(monthNumber) {
