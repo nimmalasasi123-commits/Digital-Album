@@ -38,11 +38,17 @@ const memoryAlbums = [
 ];
 
 const monthGrid = document.getElementById("monthGrid");
+const introScreen = document.getElementById("introScreen");
+const introVideo = document.getElementById("introVideo");
+const introSong = document.getElementById("introSong");
 const specialButton = document.getElementById("specialBtn");
 const photoDialog = document.getElementById("photoDialog");
 const dialogImage = document.getElementById("dialogImage");
 const dialogVideo = document.getElementById("dialogVideo");
+const dialogVideoSource = document.getElementById("dialogVideoSource");
 const videoFallback = document.getElementById("videoFallback");
+const videoFallbackMessage = document.getElementById("videoFallbackMessage");
+const videoRetry = document.getElementById("videoRetry");
 const videoDownload = document.getElementById("videoDownload");
 const dialogStage = document.querySelector(".dialog-stage");
 const viewerFrame = document.getElementById("viewerFrame");
@@ -66,6 +72,72 @@ let activePhotoIndex = 0;
 let activeAlbumId = null;
 let memoryDatabase;
 const memoryObjectUrls = new Map();
+let videoLoadId = 0;
+let introLoadFallbackTimer;
+let introWelcomeFinished = false;
+let introCanPlay = false;
+let introPlayAttempted = false;
+let introPlaybackStarted = false;
+
+function stopIntroSong() {
+    if (!introSong) return;
+    introSong.pause();
+    introSong.currentTime = 0;
+}
+
+function closeIntro() {
+    if (!introScreen || introScreen.classList.contains("is-closing")) return;
+    stopIntroSong();
+    introScreen.classList.add("is-closing");
+    window.setTimeout(() => {
+        introScreen.remove();
+        document.body.classList.remove("intro-active");
+    }, 700);
+}
+
+function startIntroVideo() {
+    if (!introVideo || !introScreen || !introWelcomeFinished || !introCanPlay || introPlayAttempted) return;
+    introPlayAttempted = true;
+    introVideo.muted = true;
+    introVideo.volume = 0;
+    window.clearTimeout(introLoadFallbackTimer);
+    introLoadFallbackTimer = window.setTimeout(() => {
+        if (!introPlaybackStarted) closeIntro();
+    }, 8000);
+    introVideo.play().catch(() => {
+        closeIntro();
+    });
+}
+
+if (introScreen && introVideo) {
+    document.body.classList.add("intro-active");
+    introVideo.controls = false;
+    introVideo.addEventListener("canplay", () => {
+        introCanPlay = true;
+        startIntroVideo();
+    }, { once: true });
+    introVideo.addEventListener("playing", () => {
+        introPlaybackStarted = true;
+        window.clearTimeout(introLoadFallbackTimer);
+        introSong?.play().catch(() => {});
+    });
+    introVideo.addEventListener("ended", closeIntro, { once: true });
+    introVideo.addEventListener("error", () => {
+        window.clearTimeout(introLoadFallbackTimer);
+        closeIntro();
+    }, { once: true });
+    window.setTimeout(() => {
+        introScreen.classList.add("is-welcome-fading");
+        window.setTimeout(() => {
+            introWelcomeFinished = true;
+            introScreen.classList.add("is-video-visible");
+            introLoadFallbackTimer = window.setTimeout(() => {
+                if (!introPlaybackStarted && !introVideo.error) closeIntro();
+            }, 15000);
+            startIntroVideo();
+        }, 650);
+    }, 2100);
+}
 
 function monthLabel(monthNumber) {
     return `Month ${monthNumber}`;
@@ -85,20 +157,24 @@ function openViewer(photos, startIndex = 0) {
 function updateViewer() {
     const photo = activePhotos[activePhotoIndex];
     const isVideo = photo.type === "video";
+    videoLoadId += 1;
     dialogStage.style.setProperty("--viewer-photo", `url("${photo.src}")`);
     dialogVideo.pause();
     dialogVideo.hidden = !isVideo;
     dialogImage.hidden = isVideo;
     videoFallback.hidden = true;
     if (isVideo) {
-        viewerFrame.style.aspectRatio = "4 / 5";
-        dialogVideo.src = photo.src;
+        waterSong.pause();
+        dialogVideo.muted = false;
+        dialogVideo.volume = 1;
+        setVideoSource(dialogVideo, photo.src, photo.mimeType);
         dialogVideo.setAttribute("aria-label", photo.alt);
         videoDownload.href = photo.src;
         videoDownload.download = photo.src.split(/[\\/]/).pop().split("?")[0] || "panchami-memory.mp4";
         dialogVideo.load();
     } else {
-        viewerFrame.style.aspectRatio = "4 / 5";
+        dialogVideoSource.removeAttribute("src");
+        dialogVideoSource.removeAttribute("type");
         dialogImage.src = photo.src;
         dialogImage.alt = photo.alt;
     }
@@ -167,6 +243,19 @@ function mediaType(pathOrType) {
     return /\.(mp4|webm|ogg|mov)$/i.test(pathOrType) || pathOrType.startsWith("video/") ? "video" : "image";
 }
 
+function videoMimeType(path) {
+    const extension = String(path).split(/[?#]/, 1)[0].split(".").pop().toLowerCase();
+    return ({ mp4: "video/mp4", webm: "video/webm", ogg: "video/ogg", mov: "video/quicktime" })[extension] || "";
+}
+
+function setVideoSource(video, sourcePath, mimeType = videoMimeType(sourcePath)) {
+    const source = video === dialogVideo ? dialogVideoSource : document.createElement("source");
+    source.src = sourcePath;
+    if (mimeType) source.type = mimeType;
+    else source.removeAttribute("type");
+    if (source !== dialogVideoSource) video.replaceChildren(source);
+}
+
 function describeAlbumMedia(album) {
     const photos = album.media.filter((path) => mediaType(path) === "image").length;
     const videos = album.media.length - photos;
@@ -200,7 +289,7 @@ function makeAlbumCard(album, savedMedia) {
         cover.append(image);
     } else {
         const videoCover = document.createElement("video");
-        videoCover.src = album.media[0];
+        setVideoSource(videoCover, album.media[0]);
         videoCover.muted = true;
         videoCover.preload = "metadata";
         videoCover.playsInline = true;
@@ -259,6 +348,7 @@ function albumMediaItem(album, source, index) {
     return {
         src: source,
         type: mediaType(source),
+        mimeType: mediaType(source) === "video" ? videoMimeType(source) : "",
         alt: `${album.title}, ${mediaType(source)} ${index + 1}`,
         caption: `${album.title} · ${String(index + 1).padStart(2, "0")}`
     };
@@ -278,6 +368,7 @@ async function renderAlbumMedia(album) {
                 id: item.id,
                 src: source,
                 type: item.type || "image",
+                mimeType: item.file?.type || item.mimeType || videoMimeType(item.file?.name || source),
                 alt: item.caption,
                 caption: item.caption,
                 savedIndex: index
@@ -303,7 +394,7 @@ async function renderAlbumMedia(album) {
         openButton.setAttribute("aria-label", `Open ${item.caption}`);
         if (item.type === "video") {
             const video = document.createElement("video");
-            video.src = item.src;
+            setVideoSource(video, item.src, item.mimeType);
             video.muted = true;
             video.preload = "metadata";
             video.playsInline = true;
@@ -435,6 +526,7 @@ memoryForm.addEventListener("submit", async (event) => {
             caption: files.length > 1 ? `${caption} · ${index + 1}` : caption,
             file,
             type: file.type.startsWith("video/") ? "video" : "image",
+            mimeType: file.type,
             albumId: activeAlbumId,
             createdAt: Date.now() + index
         }));
@@ -470,13 +562,52 @@ photoDialog.addEventListener("click", (event) => {
 
 photoDialog.addEventListener("close", () => {
     dialogVideo.pause();
-    dialogVideo.removeAttribute("src");
+    dialogVideoSource.removeAttribute("src");
+    dialogVideoSource.removeAttribute("type");
     dialogVideo.load();
     videoFallback.hidden = true;
 });
 
-dialogVideo.addEventListener("error", () => {
-    if (!dialogVideo.hidden) videoFallback.hidden = false;
+async function showVideoFallback() {
+    if (dialogVideo.hidden) return;
+    const loadId = videoLoadId;
+    const failedUrl = dialogVideo.currentSrc || dialogVideoSource.src;
+    let response;
+    try {
+        response = await fetch(failedUrl, { method: "HEAD", cache: "no-store" });
+    } catch {
+        if (loadId !== videoLoadId) return;
+        videoFallbackMessage.textContent = "The video could not be reached. Check your connection and that the file was included in the site deployment, then retry.";
+        videoFallback.hidden = false;
+        return;
+    }
+    if (loadId !== videoLoadId) return;
+    if (response.status === 404) {
+        const filename = failedUrl.split("/").pop().split(/[?#]/)[0];
+        videoFallbackMessage.textContent = `Video file not found: ${filename}. Check the exact filename and capitalization, then make sure it is included in the GitHub Pages deployment.`;
+    } else if (!response.ok) {
+        videoFallbackMessage.textContent = `The video server returned error ${response.status}. Check the deployment and retry.`;
+    } else if (dialogVideo.error?.code === 3) {
+        videoFallbackMessage.textContent = "The video file was found but could not be decoded. It may be damaged or use an unsupported codec; use MP4 with H.264 video and AAC audio for broad browser support.";
+    } else if (dialogVideo.error?.code === 4) {
+        videoFallbackMessage.textContent = "The video file was found, but this browser cannot play its media format or codec. Use MP4 with H.264 video and AAC audio for broad browser support.";
+    } else {
+        videoFallbackMessage.textContent = "The video file is present, but playback could not start. Check the connection and retry.";
+    }
+    videoFallback.hidden = false;
+}
+
+dialogVideo.addEventListener("error", showVideoFallback);
+dialogVideoSource.addEventListener("error", showVideoFallback);
+dialogVideo.addEventListener("play", () => {
+    waterSong.pause();
+    waterSong.currentTime = 0;
+});
+videoRetry.addEventListener("click", () => {
+    videoLoadId += 1;
+    videoFallback.hidden = true;
+    dialogVideo.pause();
+    dialogVideo.load();
 });
 
 memoriesDialog.addEventListener("close", () => {
@@ -499,18 +630,6 @@ photoDialog.addEventListener("keydown", (event) => {
 
 let touchStartX = 0;
 let touchStartY = 0;
-
-dialogImage.addEventListener("load", () => {
-    if (dialogImage.naturalWidth && dialogImage.naturalHeight) {
-        viewerFrame.style.aspectRatio = `${dialogImage.naturalWidth} / ${dialogImage.naturalHeight}`;
-    }
-});
-
-dialogVideo.addEventListener("loadedmetadata", () => {
-    if (dialogVideo.videoWidth && dialogVideo.videoHeight) {
-        viewerFrame.style.aspectRatio = `${dialogVideo.videoWidth} / ${dialogVideo.videoHeight}`;
-    }
-});
 
 dialogStage.addEventListener("touchstart", (event) => {
     touchStartX = event.changedTouches[0].clientX;
@@ -557,6 +676,7 @@ function makeWaterTap(x, y) {
 
 document.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
+    if (photoDialog.open || event.composedPath().includes(dialogVideo)) return;
     makeWaterTap(event.clientX, event.clientY);
     playWaterTapSound();
 });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#edf1ef">
+    <meta name="theme-color" content="#F5F3ED">
     <meta name="description" content="A digital album of Panchami, filled with monthly photos and family memories.">
     <title>Digital Album of Panchami</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +12,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="intro-screen" id="introScreen" aria-labelledby="introTitle">
+        <h1 class="intro-welcome" id="introTitle">Welcome</h1>
+        <video class="intro-video" id="introVideo" src="video.mp4" playsinline preload="auto" aria-label="Intro video"></video>
+        <audio id="introSong" src="song 1.mp3" preload="auto"></audio>
+    </div>
+
     <header class="site-header">
         <a class="wordmark" href="#home" aria-label="Digital Album of Panchami home">P<span>.</span></a>
         <nav aria-label="Main navigation">
@@ -73,7 +79,7 @@
     <footer>
         <a class="wordmark footer-mark" href="#home" aria-label="Back to top">P<span>.</span></a>
         <p>Forever our little Panchami <span aria-hidden="true">♡</span></p>
-        <span class="footer-year">A family keepsake · 2026</span>
+        <span class="footer-year">A family keepsake · 2026<br>Designed by Sasi</span>
     </footer>
 
     <dialog class="photo-dialog" id="photoDialog" aria-label="Photo viewer">
@@ -85,10 +91,13 @@
             <button class="dialog-arrow previous-photo" id="previousPhoto" type="button" aria-label="Previous photo">←</button>
             <div class="viewer-frame" id="viewerFrame">
                 <img id="dialogImage" src="" alt="">
-                <video id="dialogVideo" controls playsinline hidden></video>
+                <video id="dialogVideo" controls playsinline preload="metadata" hidden>
+                    <source id="dialogVideoSource" src="" type="video/mp4">
+                </video>
             </div>
             <div class="video-fallback" id="videoFallback" hidden>
-                <p>This video format is not supported by this browser. Download the clip or convert it to H.264 MP4 to play it here.</p>
+                <p id="videoFallbackMessage">This video could not be played. Check the file and retry.</p>
+                <button id="videoRetry" type="button">Retry video</button>
                 <a id="videoDownload" href="" download>Download video</a>
             </div>
             <button class="dialog-arrow next-photo" id="nextPhoto" type="button" aria-label="Next photo">→</button>
