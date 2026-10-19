@@ -105,7 +105,7 @@ function startIntroVideo() {
         if (!introPlaybackStarted) closeIntro();
     }, 8000);
     introVideo.play().catch(() => {
-        closeIntro();
+        introPlayAttempted = false;
     });
 }
 
@@ -120,6 +120,14 @@ if (introScreen && introVideo) {
         introPlaybackStarted = true;
         window.clearTimeout(introLoadFallbackTimer);
         introSong?.play().catch(() => {});
+    });
+    introScreen.addEventListener("pointerdown", () => {
+        if (!introWelcomeFinished) return;
+        if (!introPlaybackStarted) {
+            introPlayAttempted = false;
+            startIntroVideo();
+        }
+        if (introSong?.paused) introSong.play().catch(() => {});
     });
     introVideo.addEventListener("ended", closeIntro, { once: true });
     introVideo.addEventListener("error", () => {
