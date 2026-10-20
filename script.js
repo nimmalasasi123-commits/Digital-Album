@@ -109,6 +109,14 @@ function showIntroSkip() {
     introSkip.hidden = false;
 }
 
+function syncIntroSongToVideo() {
+    if (!introSong || !introVideo || !passwordGate?.hidden || introVideo.paused || introVideo.ended) return;
+    if (introSong.paused || Math.abs(introSong.currentTime - introVideo.currentTime) > 0.35) {
+        introSong.currentTime = introVideo.currentTime;
+    }
+    if (introSong.paused) introSong.play().catch(() => {});
+}
+
 function showPasswordGate() {
     if (!passwordGate || !passwordInput) return;
     stopIntroSong();
@@ -142,7 +150,6 @@ function playIntroStage(videoName, songName, allowSkip) {
     if (allowSkip) showIntroSkip();
     else hideIntroSkip();
     introVideo.play().catch(() => {});
-    introSong.play().catch(() => {});
 }
 
 function showIntroTitleCard(title, onComplete) {
@@ -227,7 +234,6 @@ function startIntroVideo() {
     introVideo.play().catch(() => {
         introPlayAttempted = false;
     });
-    introSong.play().catch(() => {});
 }
 
 if (introScreen && introVideo) {
@@ -242,15 +248,17 @@ if (introScreen && introVideo) {
     introVideo.addEventListener("playing", () => {
         introPlaybackStarted = true;
         window.clearTimeout(introLoadFallbackTimer);
-        if (passwordGate?.hidden) introSong?.play().catch(() => {});
+        syncIntroSongToVideo();
     });
+    introVideo.addEventListener("waiting", () => introSong?.pause());
+    introVideo.addEventListener("pause", () => introSong?.pause());
     introScreen.addEventListener("pointerdown", () => {
         if (!introWelcomeFinished || !passwordGate?.hidden) return;
         if (!introPlaybackStarted) {
             introPlayAttempted = false;
             startIntroVideo();
         }
-        if (introSong?.paused) introSong.play().catch(() => {});
+        syncIntroSongToVideo();
     });
     introStart?.addEventListener("click", () => {
         if (introStarted) return;
