@@ -20,8 +20,28 @@
             <span class="intro-loading-percent" id="introLoadingPercent">0%</span>
         </div>
         <h1 class="intro-welcome" id="introTitle" hidden>Welcome</h1>
+        <button class="intro-skip" id="introSkip" type="button" hidden>Skip</button>
         <video class="intro-video" id="introVideo" src="video.mp4" playsinline webkit-playsinline muted preload="auto" aria-label="Intro video"></video>
         <audio id="introSong" src="song 1.mp3" preload="auto"></audio>
+        <div class="password-gate" id="passwordGate" hidden>
+            <div class="password-panel">
+                <p class="password-label">Enter security code</p>
+                <h2>Unlock the album</h2>
+                <form id="passwordForm" novalidate>
+                    <div class="password-entry" id="passwordEntry" aria-label="Password entry">
+                        <div class="password-display" id="passwordDisplay" aria-hidden="true">
+                            <span class="password-slot"></span>
+                            <span class="password-slot"></span>
+                            <span class="password-slot"></span>
+                            <span class="password-slot"></span>
+                        </div>
+                        <input id="passwordInput" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Enter password" required>
+                    </div>
+                    <button type="submit">Unlock</button>
+                </form>
+                <p class="password-error" id="passwordError" aria-live="polite"></p>
+            </div>
+        </div>
     </div>
 
     <header class="site-header">
@@ -77,12 +97,12 @@
                     <h2 id="all-photos-title">Our special memories<span>.</span></h2>
                     <p class="section-description">Birthdays, firsts, family days, and all the lovely moments still to come.</p>
                 </div>
+                <p class="designer-signature">Designed by sasi</p>
             </div>
             <div class="special-actions">
                 <button class="special-btn" id="specialBtn" type="button">
                     <span class="button-label">Open special memories</span><span class="button-arrow" aria-hidden="true">↗</span>
                 </button>
-                <p class="designer-signature">Designed by sasi</p>
             </div>
         </section>
     </main>
@@ -90,7 +110,7 @@
     <footer>
         <a class="wordmark footer-mark" href="#home" aria-label="Back to top">P<span>.</span></a>
         <p>Forever our little Panchami <span aria-hidden="true">♡</span></p>
-        <span class="footer-year">A family keepsake · 2026<br>Designed by Sasi</span>
+        <span class="footer-year">A family keepsake · 2026</span>
     </footer>
 
     <dialog class="photo-dialog" id="photoDialog" aria-label="Photo viewer">

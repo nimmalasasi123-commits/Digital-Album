@@ -46,6 +46,12 @@ const introLoadingPercent = document.getElementById("introLoadingPercent");
 const introTitle = document.getElementById("introTitle");
 const introVideo = document.getElementById("introVideo");
 const introSong = document.getElementById("introSong");
+const introSkip = document.getElementById("introSkip");
+const passwordGate = document.getElementById("passwordGate");
+const passwordForm = document.getElementById("passwordForm");
+const passwordEntry = document.getElementById("passwordEntry");
+const passwordInput = document.getElementById("passwordInput");
+const passwordError = document.getElementById("passwordError");
 const specialButton = document.getElementById("specialBtn");
 const photoDialog = document.getElementById("photoDialog");
 const dialogImage = document.getElementById("dialogImage");
@@ -85,6 +91,7 @@ let introPlayAttempted = false;
 let introPlaybackStarted = false;
 let introFinaleStarted = false;
 let introStarted = false;
+let introSequenceStage = "video9";
 
 function stopIntroSong() {
     if (!introSong) return;
@@ -92,8 +99,114 @@ function stopIntroSong() {
     introSong.currentTime = 0;
 }
 
+function hideIntroSkip() {
+    if (!introSkip) return;
+    introSkip.hidden = true;
+}
+
+function showIntroSkip() {
+    if (!introSkip) return;
+    introSkip.hidden = false;
+}
+
+function showPasswordGate() {
+    if (!passwordGate || !passwordInput) return;
+    stopIntroSong();
+    introSong.muted = true;
+    passwordGate.hidden = false;
+    passwordInput.value = "";
+    passwordError.textContent = "";
+    updatePasswordDisplay();
+    window.setTimeout(() => passwordInput.focus(), 50);
+}
+
+function hidePasswordGate() {
+    if (!passwordGate) return;
+    passwordGate.hidden = true;
+    passwordError.textContent = "";
+}
+
+function playIntroStage(videoName, songName, allowSkip) {
+    if (!introVideo || !introSong || !introScreen) return;
+    introScreen.classList.remove("is-welcome-visible", "is-welcome-fading", "is-video-changing");
+    introScreen.classList.add("is-video-visible");
+    introSong.muted = false;
+    introVideo.src = videoName;
+    introSong.src = songName;
+    introVideo.load();
+    introSong.load();
+    introVideo.muted = true;
+    introVideo.volume = 0;
+    introVideo.currentTime = 0;
+    introSong.currentTime = 0;
+    if (allowSkip) showIntroSkip();
+    else hideIntroSkip();
+    introVideo.play().catch(() => {});
+    introSong.play().catch(() => {});
+}
+
+function showIntroTitleCard(title, onComplete) {
+    introSong.pause();
+    introSong.currentTime = 0;
+    introScreen.classList.add("is-video-changing");
+
+    window.setTimeout(() => {
+        introScreen.classList.remove("is-video-visible", "is-video-changing", "is-welcome-visible", "is-welcome-fading");
+        introTitle.textContent = title;
+        introTitle.hidden = false;
+        void introTitle.offsetWidth;
+        introScreen.classList.add("is-welcome-visible");
+
+        window.setTimeout(() => {
+            introScreen.classList.add("is-welcome-fading");
+            window.setTimeout(onComplete, 650);
+        }, 1400);
+    }, 450);
+}
+
+function attemptPasswordUnlock() {
+    if (!passwordInput || passwordInput.value.length !== 4) return false;
+    if (passwordInput.value === "2409") {
+        hidePasswordGate();
+        closeIntro();
+        return true;
+    }
+    passwordError.textContent = "Incorrect password. Try again.";
+    passwordInput.value = "";
+    updatePasswordDisplay();
+    return false;
+}
+
+function handleIntroSequenceEnd() {
+    if (introSequenceStage === "video9") {
+        introSequenceStage = "titleTo";
+        showIntroTitleCard("To", () => {
+            introSequenceStage = "video1";
+            introScreen.classList.add("is-video-visible");
+            playIntroStage("video.mp4", "song 1.mp3", false);
+        });
+        return;
+    }
+
+    if (introSequenceStage === "video1") {
+        introSequenceStage = "titleAlbum";
+        showIntroTitleCard("Panchami's Digital Album", () => {
+            introSequenceStage = "video8";
+            playIntroStage("video 8.mp4", "song 8.mp3", true);
+        });
+        return;
+    }
+
+    if (introSequenceStage === "video8") {
+        hideIntroSkip();
+        showPasswordGate();
+    }
+}
+
 function closeIntro() {
     if (!introScreen || introScreen.classList.contains("is-closing")) return;
+    hideIntroSkip();
+    hidePasswordGate();
     stopIntroSong();
     document.body.classList.add("intro-revealing");
     introScreen.classList.add("is-closing");
@@ -104,40 +217,17 @@ function closeIntro() {
     }, 900);
 }
 
-function startIntroFinale() {
-    if (introFinaleStarted || !introVideo || !introScreen) return;
-    introFinaleStarted = true;
-    introPlaybackStarted = false;
-    introPlayAttempted = false;
-    stopIntroSong();
-    introScreen.classList.add("is-video-changing");
-    introSong.src = "song 8.mp3";
-    introVideo.src = "video 8.mp4";
-    introSong.load();
-    introVideo.load();
-    introVideo.addEventListener("canplay", () => {
-        introScreen.classList.remove("is-video-changing");
-        introVideo.play().catch(() => {
-            introPlayAttempted = false;
-        });
-    }, { once: true });
-    introLoadFallbackTimer = window.setTimeout(() => {
-        if (!introPlaybackStarted) closeIntro();
-    }, 15000);
-}
-
 function startIntroVideo() {
     if (!introVideo || !introScreen || !introWelcomeFinished || !introCanPlay || introPlayAttempted) return;
     introPlayAttempted = true;
     introVideo.muted = true;
     introVideo.volume = 0;
-    window.clearTimeout(introLoadFallbackTimer);
-    introLoadFallbackTimer = window.setTimeout(() => {
-        if (!introPlaybackStarted) closeIntro();
-    }, 8000);
+    introVideo.currentTime = 0;
+    introSong.currentTime = 0;
     introVideo.play().catch(() => {
         introPlayAttempted = false;
     });
+    introSong.play().catch(() => {});
 }
 
 if (introScreen && introVideo) {
@@ -145,21 +235,20 @@ if (introScreen && introVideo) {
     introVideo.controls = false;
     introVideo.addEventListener("canplay", () => {
         introCanPlay = true;
-        startIntroVideo();
+        if (introWelcomeFinished) {
+            startIntroVideo();
+        }
     }, { once: true });
     introVideo.addEventListener("playing", () => {
         introPlaybackStarted = true;
         window.clearTimeout(introLoadFallbackTimer);
-        introSong?.play().catch(() => {});
+        if (passwordGate?.hidden) introSong?.play().catch(() => {});
     });
     introScreen.addEventListener("pointerdown", () => {
-        if (!introWelcomeFinished) return;
+        if (!introWelcomeFinished || !passwordGate?.hidden) return;
         if (!introPlaybackStarted) {
-            if (introFinaleStarted) introVideo.play().catch(() => {});
-            else {
-                introPlayAttempted = false;
-                startIntroVideo();
-            }
+            introPlayAttempted = false;
+            startIntroVideo();
         }
         if (introSong?.paused) introSong.play().catch(() => {});
     });
@@ -179,30 +268,66 @@ if (introScreen && introVideo) {
                 return;
             }
             introLoading.hidden = true;
-            introTitle.hidden = false;
-            introScreen.classList.add("is-welcome-visible");
-            window.setTimeout(() => {
-                introScreen.classList.add("is-welcome-fading");
-                window.setTimeout(() => {
-                    introWelcomeFinished = true;
-                    introScreen.classList.add("is-video-visible");
-                    introLoadFallbackTimer = window.setTimeout(() => {
-                        if (!introPlaybackStarted && !introVideo.error) closeIntro();
-                    }, 15000);
-                    startIntroVideo();
-                }, 650);
-            }, 2100);
+            introSequenceStage = "welcomeTitle";
+            showIntroTitleCard("Welcome", () => {
+                introWelcomeFinished = true;
+                introScreen.classList.add("is-video-visible");
+                introSequenceStage = "video9";
+                playIntroStage("video 9.mp4", "song 9.mp3", false);
+            });
         };
         window.requestAnimationFrame(updateLoading);
     });
     introVideo.addEventListener("ended", () => {
-        if (introFinaleStarted) closeIntro();
-        else startIntroFinale();
+        handleIntroSequenceEnd();
     });
     introVideo.addEventListener("error", () => {
-        if (!introStarted || introFinaleStarted) return;
+        if (!introStarted) return;
         window.clearTimeout(introLoadFallbackTimer);
+        if (introSequenceStage === "video8") {
+            hideIntroSkip();
+            showPasswordGate();
+            return;
+        }
         closeIntro();
+    });
+    introSkip?.addEventListener("click", () => {
+        if (introSequenceStage !== "video8") return;
+        introVideo.pause();
+        introSong.pause();
+        introVideo.currentTime = introVideo.duration || 0;
+        introSong.currentTime = introSong.duration || 0;
+        hideIntroSkip();
+        showPasswordGate();
+    });
+    passwordForm?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        attemptPasswordUnlock();
+    });
+    if (passwordInput) {
+        passwordInput.addEventListener("input", () => {
+            passwordInput.value = passwordInput.value.replace(/\D/g, "").slice(0, 4);
+            updatePasswordDisplay();
+            passwordError.textContent = "";
+            if (passwordInput.value.length === 4) attemptPasswordUnlock();
+        });
+        passwordInput.addEventListener("focus", () => {
+            updatePasswordDisplay();
+        });
+        passwordEntry?.addEventListener("click", () => passwordInput.focus());
+        updatePasswordDisplay();
+    }
+}
+
+function updatePasswordDisplay() {
+    if (!passwordInput) return;
+    const digits = passwordInput.value.replace(/\D/g, "").slice(0, 4);
+    const slots = document.querySelectorAll(".password-slot");
+    slots.forEach((slot, index) => {
+        const filled = index < digits.length;
+        slot.textContent = "♡";
+        slot.classList.toggle("filled", filled);
+        slot.style.opacity = filled ? "1" : ".35";
     });
 }
 
