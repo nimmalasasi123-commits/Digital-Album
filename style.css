@@ -397,10 +397,10 @@ footer p span { color: var(--gold); }
 .video-fallback a:hover, .video-fallback button:hover { background: var(--gold-light); }
 
 .water-effect-layer { position: fixed; z-index: 20; inset: 0; overflow: hidden; pointer-events: none; contain: strict; }
-.water-ripple { position: absolute; width: 22px; height: 22px; border: 1px solid rgba(255,254,250,.82); border-radius: 50%; background: radial-gradient(circle, rgba(232,216,184,.21), rgba(200,167,110,.08) 55%, transparent 72%); box-shadow: inset 0 0 8px rgba(255,254,250,.62), 0 0 14px rgba(232,216,184,.26); transform: translate(-50%, -50%) scale(.3); animation: water-ripple 820ms cubic-bezier(.16,.72,.25,1) both; }
-.water-ripple::after { position: absolute; inset: 4px; border: 1px solid rgba(255,254,250,.46); border-radius: inherit; content: ""; }
-.water-bubble { position: absolute; width: var(--bubble-size); height: var(--bubble-size); border: 1px solid rgba(255,254,250,.78); border-radius: 50%; background: radial-gradient(circle at 32% 25%, rgba(255,254,250,.96) 0 8%, rgba(232,216,184,.42) 24%, rgba(200,167,110,.13) 69%, rgba(255,254,250,.4)); box-shadow: inset -2px -2px 5px rgba(167,144,105,.17), 0 0 11px rgba(255,254,250,.3); animation: bubble-float 1.35s cubic-bezier(.2,.55,.42,1) var(--bubble-delay) both; }
-.water-bubble::before { position: absolute; top: 18%; left: 21%; width: 24%; height: 18%; border-radius: 50%; background: rgba(255,254,250,.95); content: ""; filter: blur(.3px); transform: rotate(-35deg); }
+.water-ripple { position: absolute; width: 14px; height: 14px; border: 1px solid rgba(255,254,250,.72); border-radius: 50%; transform: translate(-50%, -50%) scale(.3); animation: water-ripple 480ms ease-out both; }
+.water-ripple::after { position: absolute; inset: 3px; border: 1px solid rgba(255,254,250,.4); border-radius: inherit; content: ""; }
+.water-heart { position: absolute; color: #E6D2AB; font-size: var(--heart-size); line-height: 1; background: radial-gradient(ellipse at 34% 26%, rgba(255,255,255,.88) 0 7%, rgba(255,254,250,.58) 15%, rgba(230,210,171,.28) 44%, rgba(200,167,110,.16) 76%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: .55px rgba(255,254,250,.78); text-shadow: 0 1px 3px rgba(14,24,19,.26); transform: translate(-50%, -50%); animation: heart-float 760ms ease-out var(--heart-delay) both; }
+.water-heart::before { position: absolute; top: 17%; left: 23%; width: 19%; height: 11%; border-radius: 50%; background: rgba(255,255,255,.92); content: ""; transform: rotate(-35deg); }
 
 html.has-scroll-reveal .reveal-on-scroll { opacity: 0; transform: translateY(24px); transition: opacity .75s cubic-bezier(.2,.7,.2,1), transform .75s cubic-bezier(.2,.7,.2,1); }
 html.has-scroll-reveal .reveal-on-scroll.is-revealed { opacity: 1; transform: translateY(0); }
@@ -413,8 +413,8 @@ html.has-scroll-reveal .month-card.reveal-on-scroll { transition-delay: var(--re
 @keyframes frame-arrive { from { opacity: 0; transform: translateY(10px) scale(.975); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes album-arrive { from { opacity: 0; transform: translateY(13px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes album-detail-arrive { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes water-ripple { 0% { opacity: .9; transform: translate(-50%, -50%) scale(.25); } 72% { opacity: .42; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(5.8); } }
-@keyframes bubble-float { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.35); } 18% { opacity: .9; } 74% { opacity: .72; } 100% { opacity: 0; transform: translate(-50%, calc(-50% - var(--bubble-rise))) scale(1.08); } }
+@keyframes water-ripple { 0% { opacity: .7; transform: translate(-50%, -50%) scale(.25); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.8); } }
+@keyframes heart-float { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.55); } 20% { opacity: .9; } 100% { opacity: 0; transform: translate(-50%, calc(-50% - var(--heart-rise))) scale(.95); } }
 
 @media (min-width: 1100px) { .month-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px) {

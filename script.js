@@ -81,6 +81,8 @@ let activeAlbumId = null;
 let memoryDatabase;
 const memoryObjectUrls = new Map();
 let videoLoadId = 0;
+let lastWaterTapAt = 0;
+let lastWaterSoundAt = -Infinity;
 let introStarted = false;
 let revealObserver = null;
 
@@ -856,31 +858,36 @@ dialogStage.addEventListener("touchend", (event) => {
 }, { passive: true });
 
 function playWaterTapSound() {
+    const now = performance.now();
+    if (now - lastWaterSoundAt < 220) return;
+    lastWaterSoundAt = now;
     waterSong.pause();
     waterSong.currentTime = 0;
     const playback = waterSong.play();
     if (playback) playback.catch(() => {});
 }
 
-function makeWaterTap(x, y) {
+function makeWaterTap(x, y, isTouch) {
     const ripple = document.createElement("span");
     ripple.className = "water-ripple";
     ripple.style.left = `${x}px`;
     ripple.style.top = `${y}px`;
     waterEffectLayer.append(ripple);
 
-    for (let index = 0; index < 6; index += 1) {
-        const bubble = document.createElement("span");
-        const angle = (Math.PI * 2 * index) / 6 + Math.random() * 0.3;
-        const distance = 15 + Math.random() * 24;
-        bubble.className = "water-bubble";
-        bubble.style.left = `${x + Math.cos(angle) * distance}px`;
-        bubble.style.top = `${y + Math.sin(angle) * distance}px`;
-        bubble.style.setProperty("--bubble-size", `${7 + Math.random() * 13}px`);
-        bubble.style.setProperty("--bubble-rise", `${42 + Math.random() * 54}px`);
-        bubble.style.setProperty("--bubble-delay", `${index * 35}ms`);
-        waterEffectLayer.append(bubble);
-        bubble.addEventListener("animationend", () => bubble.remove(), { once: true });
+    const heartCount = isTouch ? 3 : 4;
+    for (let index = 0; index < heartCount; index += 1) {
+        const heart = document.createElement("span");
+        const angle = (Math.PI * 2 * index) / heartCount + Math.random() * 0.3;
+        const distance = isTouch ? 12 + Math.random() * 10 : 16 + Math.random() * 16;
+        heart.className = "water-heart";
+        heart.textContent = "♥";
+        heart.style.left = `${x + Math.cos(angle) * distance}px`;
+        heart.style.top = `${y + Math.sin(angle) * distance}px`;
+        heart.style.setProperty("--heart-size", `${isTouch ? 17 + Math.random() * 4 : 18 + Math.random() * 5}px`);
+        heart.style.setProperty("--heart-rise", `${isTouch ? 24 + Math.random() * 18 : 30 + Math.random() * 20}px`);
+        heart.style.setProperty("--heart-delay", `${index * 25}ms`);
+        waterEffectLayer.append(heart);
+        heart.addEventListener("animationend", () => heart.remove(), { once: true });
     }
     ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
 }
@@ -888,6 +895,9 @@ function makeWaterTap(x, y) {
 document.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     if (photoDialog.open || event.composedPath().includes(dialogVideo)) return;
-    makeWaterTap(event.clientX, event.clientY);
+    const now = performance.now();
+    if (now - lastWaterTapAt < 65) return;
+    lastWaterTapAt = now;
+    makeWaterTap(event.clientX, event.clientY, event.pointerType === "touch");
     playWaterTapSound();
 });
