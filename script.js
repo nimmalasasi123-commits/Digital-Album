@@ -44,9 +44,6 @@ const introLoading = document.getElementById("introLoading");
 const introLoadingFill = document.getElementById("introLoadingFill");
 const introLoadingPercent = document.getElementById("introLoadingPercent");
 const introTitle = document.getElementById("introTitle");
-const introVideo = document.getElementById("introVideo");
-const introSong = document.getElementById("introSong");
-const introSkip = document.getElementById("introSkip");
 const passwordGate = document.getElementById("passwordGate");
 const passwordForm = document.getElementById("passwordForm");
 const passwordEntry = document.getElementById("passwordEntry");
@@ -84,43 +81,11 @@ let activeAlbumId = null;
 let memoryDatabase;
 const memoryObjectUrls = new Map();
 let videoLoadId = 0;
-let introLoadFallbackTimer;
-let introWelcomeFinished = false;
-let introCanPlay = false;
-let introPlayAttempted = false;
-let introPlaybackStarted = false;
-let introFinaleStarted = false;
 let introStarted = false;
-let introSequenceStage = "video9";
-
-function stopIntroSong() {
-    if (!introSong) return;
-    introSong.pause();
-    introSong.currentTime = 0;
-}
-
-function hideIntroSkip() {
-    if (!introSkip) return;
-    introSkip.hidden = true;
-}
-
-function showIntroSkip() {
-    if (!introSkip) return;
-    introSkip.hidden = false;
-}
-
-function syncIntroSongToVideo() {
-    if (!introSong || !introVideo || !passwordGate?.hidden || introVideo.paused || introVideo.ended) return;
-    if (introSong.paused || Math.abs(introSong.currentTime - introVideo.currentTime) > 0.35) {
-        introSong.currentTime = introVideo.currentTime;
-    }
-    if (introSong.paused) introSong.play().catch(() => {});
-}
+let revealObserver = null;
 
 function showPasswordGate() {
     if (!passwordGate || !passwordInput) return;
-    stopIntroSong();
-    introSong.muted = true;
     passwordGate.hidden = false;
     passwordInput.value = "";
     passwordError.textContent = "";
@@ -132,43 +97,6 @@ function hidePasswordGate() {
     if (!passwordGate) return;
     passwordGate.hidden = true;
     passwordError.textContent = "";
-}
-
-function playIntroStage(videoName, songName, allowSkip) {
-    if (!introVideo || !introSong || !introScreen) return;
-    introScreen.classList.remove("is-welcome-visible", "is-welcome-fading", "is-video-changing");
-    introScreen.classList.add("is-video-visible");
-    introSong.muted = false;
-    introVideo.src = videoName;
-    introSong.src = songName;
-    introVideo.load();
-    introSong.load();
-    introVideo.muted = true;
-    introVideo.volume = 0;
-    introVideo.currentTime = 0;
-    introSong.currentTime = 0;
-    if (allowSkip) showIntroSkip();
-    else hideIntroSkip();
-    introVideo.play().catch(() => {});
-}
-
-function showIntroTitleCard(title, onComplete) {
-    introSong.pause();
-    introSong.currentTime = 0;
-    introScreen.classList.add("is-video-changing");
-
-    window.setTimeout(() => {
-        introScreen.classList.remove("is-video-visible", "is-video-changing", "is-welcome-visible", "is-welcome-fading");
-        introTitle.textContent = title;
-        introTitle.hidden = false;
-        void introTitle.offsetWidth;
-        introScreen.classList.add("is-welcome-visible");
-
-        window.setTimeout(() => {
-            introScreen.classList.add("is-welcome-fading");
-            window.setTimeout(onComplete, 650);
-        }, 1400);
-    }, 450);
 }
 
 function attemptPasswordUnlock() {
@@ -184,37 +112,9 @@ function attemptPasswordUnlock() {
     return false;
 }
 
-function handleIntroSequenceEnd() {
-    if (introSequenceStage === "video9") {
-        introSequenceStage = "titleTo";
-        showIntroTitleCard("To", () => {
-            introSequenceStage = "video1";
-            introScreen.classList.add("is-video-visible");
-            playIntroStage("video.mp4", "song 1.mp3", false);
-        });
-        return;
-    }
-
-    if (introSequenceStage === "video1") {
-        introSequenceStage = "titleAlbum";
-        showIntroTitleCard("Panchami's Digital Album", () => {
-            introSequenceStage = "video8";
-            playIntroStage("video 8.mp4", "song 8.mp3", true);
-        });
-        return;
-    }
-
-    if (introSequenceStage === "video8") {
-        hideIntroSkip();
-        showPasswordGate();
-    }
-}
-
 function closeIntro() {
     if (!introScreen || introScreen.classList.contains("is-closing")) return;
-    hideIntroSkip();
     hidePasswordGate();
-    stopIntroSong();
     document.body.classList.add("intro-revealing");
     introScreen.classList.add("is-closing");
     window.setTimeout(() => {
@@ -224,42 +124,8 @@ function closeIntro() {
     }, 900);
 }
 
-function startIntroVideo() {
-    if (!introVideo || !introScreen || !introWelcomeFinished || !introCanPlay || introPlayAttempted) return;
-    introPlayAttempted = true;
-    introVideo.muted = true;
-    introVideo.volume = 0;
-    introVideo.currentTime = 0;
-    introSong.currentTime = 0;
-    introVideo.play().catch(() => {
-        introPlayAttempted = false;
-    });
-}
-
-if (introScreen && introVideo) {
+if (introScreen) {
     document.body.classList.add("intro-active");
-    introVideo.controls = false;
-    introVideo.addEventListener("canplay", () => {
-        introCanPlay = true;
-        if (introWelcomeFinished) {
-            startIntroVideo();
-        }
-    }, { once: true });
-    introVideo.addEventListener("playing", () => {
-        introPlaybackStarted = true;
-        window.clearTimeout(introLoadFallbackTimer);
-        syncIntroSongToVideo();
-    });
-    introVideo.addEventListener("waiting", () => introSong?.pause());
-    introVideo.addEventListener("pause", () => introSong?.pause());
-    introScreen.addEventListener("pointerdown", () => {
-        if (!introWelcomeFinished || !passwordGate?.hidden) return;
-        if (!introPlaybackStarted) {
-            introPlayAttempted = false;
-            startIntroVideo();
-        }
-        syncIntroSongToVideo();
-    });
     introStart?.addEventListener("click", () => {
         if (introStarted) return;
         introStarted = true;
@@ -276,37 +142,16 @@ if (introScreen && introVideo) {
                 return;
             }
             introLoading.hidden = true;
-            introSequenceStage = "welcomeTitle";
-            showIntroTitleCard("Welcome", () => {
-                introWelcomeFinished = true;
-                introScreen.classList.add("is-video-visible");
-                introSequenceStage = "video9";
-                playIntroStage("video 9.mp4", "song 9.mp3", false);
-            });
+            introTitle.textContent = "Welcome";
+            introTitle.hidden = false;
+            void introTitle.offsetWidth;
+            introScreen.classList.add("is-welcome-visible");
+            window.setTimeout(() => {
+                introScreen.classList.add("is-welcome-fading");
+                window.setTimeout(showPasswordGate, 650);
+            }, 1400);
         };
         window.requestAnimationFrame(updateLoading);
-    });
-    introVideo.addEventListener("ended", () => {
-        handleIntroSequenceEnd();
-    });
-    introVideo.addEventListener("error", () => {
-        if (!introStarted) return;
-        window.clearTimeout(introLoadFallbackTimer);
-        if (introSequenceStage === "video8") {
-            hideIntroSkip();
-            showPasswordGate();
-            return;
-        }
-        closeIntro();
-    });
-    introSkip?.addEventListener("click", () => {
-        if (introSequenceStage !== "video8") return;
-        introVideo.pause();
-        introSong.pause();
-        introVideo.currentTime = introVideo.duration || 0;
-        introSong.currentTime = introSong.duration || 0;
-        hideIntroSkip();
-        showPasswordGate();
     });
     passwordForm?.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -346,6 +191,49 @@ function monthLabel(monthNumber) {
 function createPhotoPath(monthNumber, photoNumber) {
     return `${monthNumber}month${photoNumber}.jpeg`;
 }
+
+function attachFolderTilt(folder) {
+    folder.addEventListener("pointermove", (event) => {
+        const bounds = folder.getBoundingClientRect();
+        const pointerX = (event.clientX - bounds.left) / bounds.width;
+        const pointerY = (event.clientY - bounds.top) / bounds.height;
+        folder.style.setProperty("--gf-px", `${Math.round(pointerX * 100)}%`);
+        folder.style.setProperty("--gf-py", `${Math.round(pointerY * 100)}%`);
+        folder.style.setProperty("--gf-tilt-x", `${((pointerX - 0.5) * 7).toFixed(2)}deg`);
+        folder.style.setProperty("--gf-tilt-y", `${((0.5 - pointerY) * 6).toFixed(2)}deg`);
+        folder.style.setProperty("--gf-parallax-x", `${((0.5 - pointerX) * 7).toFixed(1)}px`);
+        folder.style.setProperty("--gf-parallax-y", `${((0.5 - pointerY) * 5).toFixed(1)}px`);
+    });
+    folder.addEventListener("pointerleave", () => {
+        folder.style.setProperty("--gf-px", "50%");
+        folder.style.setProperty("--gf-py", "35%");
+        folder.style.setProperty("--gf-tilt-x", "0deg");
+        folder.style.setProperty("--gf-tilt-y", "0deg");
+        folder.style.setProperty("--gf-parallax-x", "0px");
+        folder.style.setProperty("--gf-parallax-y", "0px");
+    });
+}
+
+function closeOpenFolders() {
+    document.querySelectorAll(".gf-month-folder[data-open='true']").forEach((folder) => {
+        folder.dataset.open = "false";
+        folder.querySelector(".gf-front-toggle")?.setAttribute("aria-expanded", "false");
+    });
+}
+
+function toggleMonthFolder(folder) {
+    const shouldOpen = folder.dataset.open !== "true";
+    closeOpenFolders();
+    folder.dataset.open = String(shouldOpen);
+    folder.querySelector(".gf-front-toggle")?.setAttribute("aria-expanded", String(shouldOpen));
+}
+
+document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".gf-month-folder[data-open='true']")) closeOpenFolders();
+});
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeOpenFolders();
+});
 
 function openViewer(photos, startIndex = 0) {
     activePhotos = photos;
@@ -395,25 +283,73 @@ function stepPhoto(direction) {
 
 function makeMonthCard(monthNumber, photoCount) {
     const label = monthLabel(monthNumber);
-    const card = document.createElement("button");
-    card.className = "month-card";
-    card.type = "button";
+    const card = document.createElement("article");
+    card.className = "month-card gf-root gf-month-folder";
+    card.dataset.open = "false";
     card.setAttribute("aria-label", `Open ${label}, ${photoCount} photos`);
-    card.innerHTML = `
-        <span class="month-image-wrap">
-            <img src="${createPhotoPath(monthNumber, 1)}" alt="Panchami at ${monthNumber} month${monthNumber === 1 ? "" : "s"}" loading="lazy">
-            <span class="month-open" aria-hidden="true">↗</span>
-        </span>
-        <span class="month-card-meta"><span class="month-number">MONTH ${String(monthNumber).padStart(2, "0")}</span><span class="photo-total">${photoCount} ${photoCount === 1 ? "photo" : "photos"}</span></span>
-        <span class="month-card-title">${label}</span>`;
-    card.addEventListener("click", () => {
-        const photos = Array.from({ length: photoCount }, (_, index) => ({
+    const photos = Array.from({ length: photoCount }, (_, index) => ({
             src: createPhotoPath(monthNumber, index + 1),
             alt: `Panchami at ${monthNumber} month${monthNumber === 1 ? "" : "s"}, photo ${index + 1}`,
             caption: `${label} · ${String(index + 1).padStart(2, "0")}`
         }));
+
+    const back = document.createElement("div");
+    back.className = "gf-back";
+    const backPhoto = document.createElement("img");
+    backPhoto.className = "gf-back-photo";
+    backPhoto.src = photos[0].src;
+    backPhoto.alt = "";
+    backPhoto.loading = "lazy";
+    back.append(backPhoto);
+
+    const files = document.createElement("div");
+    files.className = "gf-files";
+    files.setAttribute("role", "group");
+    files.setAttribute("aria-label", `${label} photographs`);
+    photos.slice(0, 4).forEach((photo, index) => {
+        const sheet = document.createElement("button");
+        sheet.className = "gf-sheet";
+        sheet.type = "button";
+        sheet.setAttribute("aria-label", `Open ${label}, photo ${index + 1}`);
+        const image = document.createElement("img");
+        image.src = photo.src;
+        image.alt = "";
+        image.loading = "lazy";
+        sheet.append(image);
+        sheet.addEventListener("click", () => {
+            closeOpenFolders();
+            openViewer(photos, index);
+        });
+        files.append(sheet);
+    });
+
+    const front = document.createElement("button");
+    front.className = "gf-front gf-front-toggle";
+    front.type = "button";
+    front.setAttribute("aria-expanded", "false");
+    front.setAttribute("aria-label", `${label}, ${photoCount} photos. Toggle folder`);
+    front.innerHTML = `
+        <span class="gf-front-kicker">PANCHAMI'S ARCHIVE · ${String(monthNumber).padStart(2, "0")}</span>
+        <span class="month-card-title">${label}</span>
+        <span class="gf-front-count">${photoCount} ${photoCount === 1 ? "photograph" : "photographs"}</span>`;
+    front.addEventListener("click", () => toggleMonthFolder(card));
+
+    const open = document.createElement("button");
+    open.className = "gf-open";
+    open.type = "button";
+    open.setAttribute("aria-label", `Open ${label} slideshow`);
+    open.textContent = "↗";
+    open.addEventListener("click", () => {
+        closeOpenFolders();
         openViewer(photos);
     });
+
+    card.append(back, files, front, open);
+    card.addEventListener("click", (event) => {
+        if (event.target.closest(".gf-front-toggle, .gf-open, .gf-sheet")) return;
+        toggleMonthFolder(card);
+    });
+    attachFolderTilt(card);
     return card;
 }
 
@@ -433,6 +369,33 @@ const photosByMonth = new Map(months.map(({ month, photos }) => [month, photos])
 for (let monthNumber = 1; monthNumber <= 9; monthNumber += 1) {
     const photoCount = photosByMonth.get(monthNumber);
     monthGrid.append(photoCount ? makeMonthCard(monthNumber, photoCount) : makeWaitingCard(monthNumber));
+}
+
+const siteHeader = document.querySelector(".site-header");
+function updateHeaderScrollState() {
+    siteHeader?.classList.toggle("is-scrolled", window.scrollY > 24);
+}
+window.addEventListener("scroll", updateHeaderScrollState, { passive: true });
+updateHeaderScrollState();
+
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (!reduceMotion && "IntersectionObserver" in window) {
+    revealObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-revealed");
+            observer.unobserve(entry.target);
+        });
+    }, { threshold: 0.12, rootMargin: "0px 0px -35px 0px" });
+    const revealTargets = document.querySelectorAll("main > section, footer, .month-card");
+    document.documentElement.classList.add("has-scroll-reveal");
+    revealTargets.forEach((element, index) => {
+        element.classList.add("reveal-on-scroll");
+        if (element.classList.contains("month-card")) {
+            element.style.setProperty("--reveal-delay", `${(index % 3) * 75}ms`);
+        }
+        revealObserver.observe(element);
+    });
 }
 
 const photoTotal = months.reduce((total, entry) => total + entry.photos, 0);
@@ -467,8 +430,9 @@ function describeAlbumMedia(album) {
 
 function makeAlbumCard(album, savedMedia) {
     const card = document.createElement("button");
-    card.className = "memory-album-card";
+    card.className = "memory-album-card gf-root gf-album-folder";
     card.type = "button";
+    card.dataset.tone = "dark";
     const savedPhotos = savedMedia.filter((item) => item.type !== "video").length;
     const savedVideos = savedMedia.length - savedPhotos;
     const baseCount = describeAlbumMedia(album);
@@ -478,6 +442,9 @@ function makeAlbumCard(album, savedMedia) {
     ].filter(Boolean).join(" · ");
     const mediaCount = [baseCount, extraCount].filter(Boolean).join(" · ");
     card.setAttribute("aria-label", `Open ${album.title}, ${mediaCount}`);
+
+    const back = document.createElement("span");
+    back.className = "gf-back gf-album-back";
     const cover = document.createElement("span");
     cover.className = "album-cover";
     const firstImage = album.media.find((path) => mediaType(path) === "image");
@@ -504,10 +471,41 @@ function makeAlbumCard(album, savedMedia) {
         });
         cover.append(videoFallback);
     }
-    const count = document.createElement("span");
-    count.className = "album-media-count";
-    count.textContent = mediaCount;
-    cover.append(count);
+    back.append(cover);
+
+    const files = document.createElement("span");
+    files.className = "gf-files";
+    album.media.slice(0, 4).forEach((source, index) => {
+        const sheet = document.createElement("span");
+        sheet.className = "gf-sheet gf-album-sheet";
+        sheet.setAttribute("aria-hidden", "true");
+        if (mediaType(source) === "video") {
+            const video = document.createElement("video");
+            setVideoSource(video, source);
+            video.muted = true;
+            video.preload = "metadata";
+            video.playsInline = true;
+            const videoFallback = document.createElement("span");
+            videoFallback.className = "video-cover-fallback";
+            videoFallback.textContent = "VIDEO";
+            videoFallback.hidden = true;
+            video.addEventListener("error", () => {
+                videoFallback.hidden = false;
+                sheet.classList.add("video-cover-error");
+            });
+            sheet.append(video, videoFallback);
+        } else {
+            const image = document.createElement("img");
+            image.src = source;
+            image.alt = "";
+            image.loading = "lazy";
+            sheet.append(image);
+        }
+        files.append(sheet);
+    });
+
+    const front = document.createElement("span");
+    front.className = "gf-front gf-album-front";
     const number = document.createElement("span");
     number.className = "album-card-number";
     number.textContent = `MEMORY ${album.id.padStart(2, "0")}`;
@@ -515,11 +513,16 @@ function makeAlbumCard(album, savedMedia) {
     title.className = "album-card-title";
     title.textContent = album.title;
     const arrow = document.createElement("span");
-    arrow.className = "album-card-arrow";
+    arrow.className = "album-card-arrow gf-open";
     arrow.setAttribute("aria-hidden", "true");
     arrow.textContent = "↗";
-    card.append(cover, number, title, arrow);
+    const count = document.createElement("span");
+    count.className = "album-media-count gf-front-count";
+    count.textContent = mediaCount;
+    front.append(number, title, count);
+    card.append(back, files, front, arrow);
     card.addEventListener("click", () => openAlbum(album));
+    attachFolderTilt(card);
     return card;
 }
 
@@ -528,6 +531,13 @@ async function renderAlbumCards() {
     memoryAlbumGrid.replaceChildren(...memoryAlbums.map((album) =>
         makeAlbumCard(album, saved.filter((item) => item.albumId === album.id))
     ));
+    if (revealObserver) {
+        memoryAlbumGrid.querySelectorAll(".gf-root").forEach((folder, index) => {
+            folder.classList.add("reveal-on-scroll");
+            folder.style.setProperty("--reveal-delay", `${(index % 4) * 70}ms`);
+            revealObserver.observe(folder);
+        });
+    }
 }
 
 async function openAlbum(album) {
