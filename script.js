@@ -194,6 +194,7 @@ function createPhotoPath(monthNumber, photoNumber) {
 
 function attachFolderTilt(folder) {
     folder.addEventListener("pointermove", (event) => {
+        if (event.pointerType === "touch") return;
         const bounds = folder.getBoundingClientRect();
         const pointerX = (event.clientX - bounds.left) / bounds.width;
         const pointerY = (event.clientY - bounds.top) / bounds.height;
